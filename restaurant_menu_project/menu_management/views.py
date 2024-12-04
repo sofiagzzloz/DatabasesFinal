@@ -17,6 +17,8 @@ import logging
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .serializers import RestaurantSerializer
+from decimal import Decimal, InvalidOperation
+
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -92,6 +94,23 @@ def etl_pipeline(request):
                     if not structured_data:
                         logger.error("AI processing failed")
                         return JsonResponse({'error': 'AI processing failed'}, status=500)
+
+                    if structured_data and 'sections' in structured_data:
+                        for section in structured_data['sections']:
+                            for item in section['menu_items']:
+                                # Set default price if null
+                                if item['price'] is None:
+                                    item['price'] = 0.00  # or any default price you prefer
+                                
+                                # Ensure price is a valid decimal
+                                try:
+                                    item['price'] = Decimal(str(item['price']))
+                                except (TypeError, InvalidOperation):
+                                    item['price'] = Decimal('0.00')
+
+                                # Validate price is within the allowed range (max_digits=5, decimal_places=2)
+                                if item['price'] > Decimal('999.99'):
+                                    item['price'] = Decimal('999.99')
 
                     # Step 4: Store extracted data in the database
                     menu = Menu.objects.create(

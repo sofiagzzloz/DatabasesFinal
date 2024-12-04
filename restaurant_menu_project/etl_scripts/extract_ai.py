@@ -10,7 +10,6 @@ load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 if not openai.api_key:
-    logger.error("OpenAI API key is not set!")
     raise ValueError("OpenAI API key is not configured")
 
 def process_text_with_ai(text):

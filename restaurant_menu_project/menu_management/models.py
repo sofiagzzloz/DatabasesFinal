@@ -50,7 +50,7 @@ class MenuItem(models.Model):
     section = models.ForeignKey(MenuSection, on_delete=models.CASCADE)
     item = models.CharField(max_length=100)
     item_description = models.CharField(max_length=200, blank=True, null=True)
-    price = models.DecimalField(max_digits=5, decimal_places=2)
+    price = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
