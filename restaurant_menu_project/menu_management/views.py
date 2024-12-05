@@ -17,8 +17,6 @@ import logging
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .serializers import RestaurantSerializer
-from decimal import Decimal, InvalidOperation
-
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -95,23 +93,6 @@ def etl_pipeline(request):
                         logger.error("AI processing failed")
                         return JsonResponse({'error': 'AI processing failed'}, status=500)
 
-                    if structured_data and 'sections' in structured_data:
-                        for section in structured_data['sections']:
-                            for item in section['menu_items']:
-                                # Set default price if null
-                                if item['price'] is None:
-                                    item['price'] = 0.00  # or any default price you prefer
-                                
-                                # Ensure price is a valid decimal
-                                try:
-                                    item['price'] = Decimal(str(item['price']))
-                                except (TypeError, InvalidOperation):
-                                    item['price'] = Decimal('0.00')
-
-                                # Validate price is within the allowed range (max_digits=5, decimal_places=2)
-                                if item['price'] > Decimal('999.99'):
-                                    item['price'] = Decimal('999.99')
-
                     # Step 4: Store extracted data in the database
                     menu = Menu.objects.create(
                         restaurant=restaurant,
@@ -155,7 +136,20 @@ def etl_pipeline(request):
                     os.remove(pdf_path)
 
                     # Return a simple success response without menu items
-                    return JsonResponse({'message': 'Menu processed successfully'})
+                    return JsonResponse({
+                        'message': 'Menu processed successfully',
+                        'menu_items': [
+                            {
+                                'section': section_data['name'],
+                                'name': item_data['name'],
+                                'price': float(item_data['price']) if item_data['price'] is not None else 0.00,
+                                'description': item_data.get('description', ''),
+                                'dietaryNotes': item_data.get('dietary_restrictions', [])
+                            }
+                            for section_data in structured_data.get('sections', [])
+                            for item_data in section_data.get('menu_items', [])
+                        ]
+                    })
 
                 finally:
                     # Remove the temp directory if it is empty
@@ -213,3 +207,64 @@ def processing_log_list(request, menu_id):
     }
     return render(request, 'menu_management/processing_log_list.html', context)
 
+
+@csrf_exempt
+@api_view(['POST'])
+def save_menu_data(request):
+    logger.info("Received save_menu request")
+    logger.info(f"Request body: {request.body}")
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            logger.info(f"Parsed data: {data}")
+            data = json.loads(request.body)
+            restaurant_id = data.get('restaurant_id')
+            menu_items = data.get('menu_items', [])
+
+            if not restaurant_id:
+                return JsonResponse({'error': 'Restaurant ID is required'}, status=400)
+
+            restaurant = get_object_or_404(Restaurant, id=restaurant_id)
+
+            # Create new menu version
+            menu = Menu.objects.create(
+                restaurant=restaurant,
+                title="Menu Title",
+                version=1,
+            )
+
+            # Group items by section
+            sections = {}
+            for item in menu_items:
+                section_name = item.get('section')
+                if section_name not in sections:
+                    sections[section_name] = MenuSection.objects.create(
+                        menu=menu,
+                        section=section_name,
+                        section_description='',
+                    )
+
+                # Create menu item
+                menu_item = MenuItem.objects.create(
+                    section=sections[section_name],
+                    item=item.get('name'),
+                    item_description=item.get('description', ''),
+                    price=item.get('price', 0.00),
+                )
+
+                # Handle dietary restrictions
+                for restriction in item.get('dietaryNotes', []):
+                    restriction_obj, _ = DietaryRestriction.objects.get_or_create(
+                        restriction=restriction
+                    )
+                    MenuItemDietaryRestriction.objects.create(
+                        item=menu_item,
+                        restriction=restriction_obj,
+                    )
+            return JsonResponse({'message': 'Menu saved successfully'})
+
+        except Exception as e:
+            logger.error(f"Error saving menu data: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=400)

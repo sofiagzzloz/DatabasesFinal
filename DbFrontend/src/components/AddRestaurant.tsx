@@ -51,27 +51,33 @@ export function AddRestaurant() {
       alert('Please complete step 1 before uploading a menu.');
       return;
     }
-
+  
     setIsLoading(true);
     const formData = new FormData();
     formData.append('menu_pdf', file);
-    formData.append('restaurant_id', restaurant.id as string); // Pass the restaurant ID
-
+    formData.append('restaurant_id', restaurant.id.toString());
+  
     try {
       const response = await fetch('http://127.0.0.1:8000/etl/', {
         method: 'POST',
         body: formData,
       });
-
+  
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server Error:', errorText);
         throw new Error('Failed to process menu PDF.');
       }
-
+  
       const result = await response.json();
-      setMenuItems(result.menu_items); // Assume API returns menu items
-      setStep(3); // Move to the next step (Review menu data)
+      if (result.menu_items && Array.isArray(result.menu_items)) {
+        setMenuItems(result.menu_items);
+        setStep(3);
+      } else {
+        throw new Error('Invalid response format from server');
+      }
     } catch (error) {
-      console.error(error);
+      console.error('Error:', error);
       alert('Error processing menu PDF. Please try again.');
     } finally {
       setIsLoading(false);
@@ -81,7 +87,7 @@ export function AddRestaurant() {
   const handleMenuSave = async (items: MenuItem[]) => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/etl/', {
+      const response = await fetch('http://127.0.0.1:8000/etl/save_menu/', {  // New endpoint
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -89,13 +95,14 @@ export function AddRestaurant() {
           menu_items: items,
         }),
       });
-
+  
       if (!response.ok) {
-        throw new Error('Failed to save menu data.');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save menu data.');
       }
-
-      setMenuItems(items); // Update state with finalized menu items
-      setStep(4); // Final step (success page)
+  
+      setMenuItems(items);
+      setStep(4);
     } catch (error) {
       console.error(error);
       alert('Error saving menu data. Please try again.');
@@ -160,17 +167,30 @@ export function AddRestaurant() {
       )}
 
       {step === 3 && (
-        <>
+        <div className="max-w-6xl mx-auto px-4">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Review Extracted Data
+            Review Extracted Menu Data
           </h2>
-          <MenuReview
-            items={menuItems}
-            onSave={handleMenuSave}
-            onReprocess={() => setStep(2)}
-            isLoading={isLoading}
-          />
-        </>
+          {isLoading ? (
+            <div className="text-center py-8">
+              <p>Processing menu data...</p>
+            </div>
+          ) : menuItems.length > 0 ? (
+            <MenuReview
+              items={menuItems}
+              onSave={handleMenuSave}
+              onReprocess={() => setStep(2)}
+              isLoading={isLoading}
+            />
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-red-600">No menu items were extracted. Please try again.</p>
+              <Button onClick={() => setStep(2)} variant="outline" className="mt-4">
+                Upload Again
+              </Button>
+            </div>
+          )}
+        </div>
       )}
 
       {step === 4 && (

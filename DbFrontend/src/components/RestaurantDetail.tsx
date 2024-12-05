@@ -13,6 +13,8 @@ export function RestaurantDetail() {
     address: '123 Main St',
     city: 'New York',
     phone: '(555) 123-4567',
+    country: 'USA',
+    website: 'http://italianplace.com',
   });
 
   const [menuVersions] = React.useState<MenuData[]>([
@@ -47,6 +49,7 @@ export function RestaurantDetail() {
                 <p className="text-sm font-medium text-gray-900">Address</p>
                 <p className="text-sm text-gray-600">{restaurant.address}</p>
                 <p className="text-sm text-gray-600">{restaurant.city}</p>
+                <p className="text-sm text-gray-600">{restaurant.country}</p>
               </div>
             </div>
             
@@ -59,10 +62,10 @@ export function RestaurantDetail() {
             </div>
             
             <div className="flex items-center">
-              <Mail className="h-5 w-5 text-gray-400 mr-2" />
+              <Building2 className="h-5 w-5 text-gray-400 mr-2" />
               <div>
-                <p className="text-sm font-medium text-gray-900">Email</p>
-                <p className="text-sm text-gray-600">{restaurant.email}</p>
+                <p className="text-sm font-medium text-gray-900">Website</p>
+                <p className="text-sm text-gray-600">{restaurant.website}</p>
               </div>
             </div>
           </div>

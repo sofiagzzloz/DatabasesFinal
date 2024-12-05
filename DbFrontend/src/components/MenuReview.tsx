@@ -1,27 +1,42 @@
 import React from 'react';
-import { Edit2, Save, RotateCcw } from 'lucide-react';
-import { Button } from './ui/Button';
-import type { MenuItem } from '@/types';
+import { Button } from './ui/button';
+import { RotateCcw, Save } from 'lucide-react';
+import { MenuItem } from '../types/MenuItem';
 
 interface MenuReviewProps {
   items: MenuItem[];
   onSave: (items: MenuItem[]) => void;
   onReprocess: () => void;
-  isLoading?: boolean;
+  isLoading: boolean;
 }
 
 export function MenuReview({ items, onSave, onReprocess, isLoading }: MenuReviewProps) {
-  const [editedItems, setEditedItems] = React.useState(items);
+  const [editedItems, setEditedItems] = React.useState<MenuItem[]>(items);
 
   const handleItemChange = (index: number, field: keyof MenuItem, value: string | number | string[]) => {
     const newItems = [...editedItems];
-    newItems[index] = { ...newItems[index], [field]: value };
+    newItems[index] = { 
+      ...newItems[index], 
+      [field]: field === 'price' ? parseFloat(value as string) || 0 : value 
+    };
     setEditedItems(newItems);
   };
 
+  if (!items.length) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-600 mb-4">No menu items were extracted. Please try uploading again.</p>
+        <Button onClick={onReprocess} variant="outline">
+          <RotateCcw className="w-4 h-4 mr-2" />
+          Reprocess Menu
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto">
-      <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+      <div className="bg-white shadow-sm rounded-lg overflow-hidden mb-6">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -95,15 +110,14 @@ export function MenuReview({ items, onSave, onReprocess, isLoading }: MenuReview
         <Button
           variant="outline"
           onClick={onReprocess}
-          className="flex items-center"
+          disabled={isLoading}
         >
           <RotateCcw className="w-4 h-4 mr-2" />
           Reprocess Menu
         </Button>
         <Button
           onClick={() => onSave(editedItems)}
-          isLoading={isLoading}
-          className="flex items-center"
+          disabled={isLoading}
         >
           <Save className="w-4 h-4 mr-2" />
           Save Changes
