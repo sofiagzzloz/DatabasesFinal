@@ -268,3 +268,51 @@ def save_menu_data(request):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+@api_view(['GET'])
+def get_restaurants(request):
+    try:
+        restaurants = Restaurant.objects.all()
+        serializer = RestaurantSerializer(restaurants, many=True)
+        return JsonResponse({'restaurants': serializer.data})
+    except Exception as e:
+        logger.error(f"Error fetching restaurants: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+def get_restaurant_detail(request, restaurant_id):
+    try:
+        restaurant = get_object_or_404(Restaurant, id=restaurant_id)
+        serializer = RestaurantSerializer(restaurant)
+        return JsonResponse({'restaurant': serializer.data})
+    except Exception as e:
+        logger.error(f"Error fetching restaurant details: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+def get_restaurant_menus(request, restaurant_id):
+    try:
+        menus = Menu.objects.filter(restaurant_id=restaurant_id).order_by('-version')
+        menu_data = []
+        
+        for menu in menus:
+            menu_items = MenuItem.objects.filter(section__menu=menu)
+            menu_data.append({
+                'version': menu.version,
+                'lastUpdated': menu.last_updated,
+                'items': [{
+                    'name': item.item,
+                    'price': float(item.price) if item.price else 0.00,
+                    'description': item.item_description,
+                    'section': item.section.section,
+                    'dietaryNotes': [
+                        r.restriction.restriction 
+                        for r in item.menuitemdietaryrestriction_set.all()
+                    ]
+                } for item in menu_items]
+            })
+        
+        return JsonResponse({'menus': menu_data})
+    except Exception as e:
+        logger.error(f"Error fetching restaurant menus: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)

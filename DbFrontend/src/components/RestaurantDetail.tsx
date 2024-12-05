@@ -1,44 +1,52 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Building2, Phone, MapPin, FileText } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { MapPin, Phone, Building2 } from 'lucide-react';
 import type { Restaurant, MenuData } from '@/types';
 
 export function RestaurantDetail() {
   const { id } = useParams();
-  
-  // Mock data - replace with actual data fetching
-  const [restaurant] = React.useState<Restaurant>({
-    id: '1',
-    name: 'The Italian Place',
-    address: '123 Main St',
-    city: 'New York',
-    phone: '(555) 123-4567',
-    country: 'USA',
-    website: 'http://italianplace.com',
-  });
+  const [restaurant, setRestaurant] = React.useState<Restaurant | null>(null);
+  const [menuVersions, setMenuVersions] = React.useState<MenuData[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
-  const [menuVersions] = React.useState<MenuData[]>([
-    {
-      restaurantId: '1',
-      version: 1,
-      lastUpdated: new Date('2024-03-01'),
-      items: [
-        {
-          name: 'Margherita Pizza',
-          price: 14.99,
-          description: 'Fresh tomatoes, mozzarella, and basil',
-          section: 'Pizza',
-          dietaryNotes: ['Vegetarian'],
-        },
-      ],
-    },
-  ]);
+  React.useEffect(() => {
+    const fetchRestaurantData = async () => {
+      try {
+        setIsLoading(true); // Set loading to true
+        const response = await fetch(`http://127.0.0.1:8000/restaurant/${id}/`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch restaurant details');
+        }
+        const data = await response.json();
+        setRestaurant(data.restaurant);
+        setMenuVersions(data.menu_versions || []); // Handle menu versions if available
+      } catch (error) {
+        console.error('Error:', error);
+        setError('Failed to load restaurant details');
+      } finally {
+        setIsLoading(false); // Always set loading to false
+      }
+    };
+
+    if (id) {
+      fetchRestaurantData();
+    }
+  }, [id]);
+
+  if (isLoading) {
+    return <div className="text-center py-8">Loading restaurant details...</div>;
+  }
+
+  if (error || !restaurant) {
+    return <div className="text-center py-8 text-red-600">{error || 'Restaurant not found'}</div>;
+  }
 
   return (
     <div>
       <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">
-          {restaurant.name}
+          {restaurant.restaurant_name}
         </h1>
         
         <div className="grid gap-6 md:grid-cols-2">
@@ -57,7 +65,7 @@ export function RestaurantDetail() {
               <Phone className="h-5 w-5 text-gray-400 mr-2" />
               <div>
                 <p className="text-sm font-medium text-gray-900">Phone</p>
-                <p className="text-sm text-gray-600">{restaurant.phone}</p>
+                <p className="text-sm text-gray-600">{restaurant.contact_number}</p>
               </div>
             </div>
             
@@ -65,43 +73,47 @@ export function RestaurantDetail() {
               <Building2 className="h-5 w-5 text-gray-400 mr-2" />
               <div>
                 <p className="text-sm font-medium text-gray-900">Website</p>
-                <p className="text-sm text-gray-600">{restaurant.website}</p>
+                <a 
+                  href={restaurant.website_link} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  {restaurant.website_link}
+                </a>
               </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Menu Versions Section */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Menu Versions</h2>
-        <div className="space-y-4">
-          {menuVersions.map((menu) => (
-            <div
-              key={menu.version}
-              className="border rounded-lg p-4 hover:bg-gray-50"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <FileText className="h-5 w-5 text-gray-400 mr-2" />
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Menu Versions</h2>
+        {menuVersions.length === 0 ? (
+          <p className="text-gray-600">No menus available for this restaurant.</p>
+        ) : (
+          <div className="space-y-4">
+            {menuVersions.map((menu, index) => (
+              <div 
+                key={index}
+                className="border rounded-lg p-4 hover:bg-gray-50"
+              >
+                <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      Version {menu.version}
-                    </p>
+                    <p className="font-medium">Version {menu.version}</p>
                     <p className="text-sm text-gray-600">
-                      Last updated: {menu.lastUpdated.toLocaleDateString()}
+                      Last updated: {new Date(menu.lastUpdated).toLocaleDateString()}
                     </p>
                   </div>
+                  <div className="text-sm text-gray-600">
+                    {menu.items.length} items
+                  </div>
                 </div>
-                <Link
-                  to={`/restaurant/${id}/menu/${menu.version}`}
-                  className="text-blue-600 hover:text-blue-500 text-sm font-medium"
-                >
-                  View Menu
-                </Link>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
