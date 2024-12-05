@@ -296,20 +296,28 @@ def get_restaurant_menus(request, restaurant_id):
         menu_data = []
         
         for menu in menus:
-            menu_items = MenuItem.objects.filter(section__menu=menu)
+            sections = MenuSection.objects.filter(menu=menu)
+            menu_items = []
+            
+            for section in sections:
+                items = MenuItem.objects.filter(section=section)
+                for item in items:
+                    menu_items.append({
+                        'name': item.item,
+                        'price': float(item.price),
+                        'description': item.item_description,
+                        'section': section.section,
+                        'dietary_restrictions': [
+                            r.restriction.restriction 
+                            for r in item.menuitemdietaryrestriction_set.all()
+                        ]
+                    })
+            
             menu_data.append({
+                'id': str(menu.id),
                 'version': menu.version,
-                'lastUpdated': menu.last_updated,
-                'items': [{
-                    'name': item.item,
-                    'price': float(item.price) if item.price else 0.00,
-                    'description': item.item_description,
-                    'section': item.section.section,
-                    'dietaryNotes': [
-                        r.restriction.restriction 
-                        for r in item.menuitemdietaryrestriction_set.all()
-                    ]
-                } for item in menu_items]
+                'last_updated': menu.last_updated.isoformat(),
+                'menu_items': menu_items
             })
         
         return JsonResponse({'menus': menu_data})

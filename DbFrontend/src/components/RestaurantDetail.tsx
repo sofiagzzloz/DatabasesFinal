@@ -1,36 +1,45 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
-import { MapPin, Phone, Building2 } from 'lucide-react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { MapPin, Phone, Building2, PlusCircle, ChevronRight } from 'lucide-react';
 import type { Restaurant, MenuData } from '@/types';
+import { Button } from '@/components/ui/button';
 
 export function RestaurantDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [restaurant, setRestaurant] = React.useState<Restaurant | null>(null);
   const [menuVersions, setMenuVersions] = React.useState<MenuData[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    const fetchRestaurantData = async () => {
+    const fetchData = async () => {
       try {
-        setIsLoading(true); // Set loading to true
-        const response = await fetch(`http://127.0.0.1:8000/restaurant/${id}/`);
-        if (!response.ok) {
+        setIsLoading(true);
+        // Fetch restaurant details
+        const restaurantResponse = await fetch(`http://127.0.0.1:8000/restaurant/${id}/`);
+        if (!restaurantResponse.ok) {
           throw new Error('Failed to fetch restaurant details');
         }
-        const data = await response.json();
-        setRestaurant(data.restaurant);
-        setMenuVersions(data.menu_versions || []); // Handle menu versions if available
+        const restaurantData = await restaurantResponse.json();
+        setRestaurant(restaurantData.restaurant);
+
+        // Fetch menu versions
+        const menuResponse = await fetch(`http://127.0.0.1:8000/restaurant/${id}/menus/`);
+        if (menuResponse.ok) {
+          const menuData = await menuResponse.json();
+          setMenuVersions(menuData.menus);
+        }
       } catch (error) {
         console.error('Error:', error);
         setError('Failed to load restaurant details');
       } finally {
-        setIsLoading(false); // Always set loading to false
+        setIsLoading(false);
       }
     };
 
     if (id) {
-      fetchRestaurantData();
+      fetchData();
     }
   }, [id]);
 
@@ -89,25 +98,42 @@ export function RestaurantDetail() {
 
       {/* Menu Versions Section */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Menu Versions</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Menu Versions</h2>
+          <Link to={`/restaurant/${id}/add-menu`}>
+            <Button variant="outline" className="flex items-center gap-2">
+              <PlusCircle className="h-4 w-4" />
+              Add Menu
+            </Button>
+          </Link>
+        </div>
+
         {menuVersions.length === 0 ? (
-          <p className="text-gray-600">No menus available for this restaurant.</p>
+          <div className="text-center py-8 text-gray-500">
+            No menus available. Add one to get started!
+          </div>
         ) : (
           <div className="space-y-4">
-            {menuVersions.map((menu, index) => (
+            {menuVersions.map((menu) => (
               <div 
-                key={index}
-                className="border rounded-lg p-4 hover:bg-gray-50"
+                key={menu.version}
+                onClick={() => navigate(`/restaurant/${id}/menu/${menu.version}`)}
+                className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
               >
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="font-medium">Version {menu.version}</p>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Menu Version {menu.version}
+                    </h3>
                     <p className="text-sm text-gray-600">
-                      Last updated: {new Date(menu.lastUpdated).toLocaleDateString()}
+                      Last updated: {new Date(menu.last_updated).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    {menu.items.length} items
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">
+                      {menu.menu_items?.length || 0} items
+                    </span>
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
                   </div>
                 </div>
               </div>

@@ -12,13 +12,13 @@ export interface MenuItem {
   name: string;
   price: number;
   description?: string;
-  dietaryNotes?: string[];
+  dietary_restrictions?: string[];
   section: string;
 }
 
 export interface MenuData {
-  restaurantId: string;
-  items: MenuItem[];
+  Id: string;
+  menu_items: MenuItem[];
   version: number;
-  lastUpdated: Date;
+  last_updated: string;
 }

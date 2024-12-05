@@ -7,6 +7,6 @@ urlpatterns = [
     path('restaurants/', views.get_restaurants, name='get_restaurants'),
     path('', views.frontend, name='frontend'),
     path('restaurant/<int:restaurant_id>/', views.get_restaurant_detail, name='restaurant_detail'),
-path('restaurant/<int:restaurant_id>/menus/', views.get_restaurant_menus, name='restaurant_menus'),
+    path('restaurant/<int:restaurant_id>/menus/', views.get_restaurant_menus, name='restaurant_menus'),
     re_path(r'^.*$', views.frontend, name='frontend'),  # Move catch-all to the end
 ]
