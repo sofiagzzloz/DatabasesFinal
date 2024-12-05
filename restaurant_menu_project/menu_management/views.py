@@ -93,15 +93,19 @@ def etl_pipeline(request):
                         logger.error("AI processing failed")
                         return JsonResponse({'error': 'AI processing failed'}, status=500)
 
-                    # Step 4: Store extracted data in the database
+                    # Get the latest version number for this restaurant
+                    latest_menu = Menu.objects.filter(restaurant=restaurant).order_by('-version').first()
+                    new_version = (latest_menu.version + 1) if latest_menu else 1
+
+                    # Create new menu with incremented version
                     menu = Menu.objects.create(
                         restaurant=restaurant,
-                        title="Menu Title",
+                        title=f"Menu Version {new_version}",
                         created_at=timezone.now(),
                         last_updated=timezone.now(),
-                        version=1,
+                        version=new_version,
                     )
-                    logger.info(f"Menu created for restaurant: {restaurant.restaurant_name}")
+                    logger.info(f"Menu version {new_version} created for restaurant: {restaurant.restaurant_name}")
 
                     # Save menu sections and items
                     for section_data in structured_data.get('sections', []):
@@ -302,7 +306,6 @@ def get_restaurant_detail(request, restaurant_id):
 @api_view(['GET'])
 def get_menu_detail(request, restaurant_id, version):
     try:
-        # Make sure we're using restaurant_id
         menu = Menu.objects.get(restaurant_id=restaurant_id, version=version)
         sections = MenuSection.objects.filter(menu=menu)
         menu_items = []
@@ -317,12 +320,12 @@ def get_menu_detail(request, restaurant_id, version):
                     'section': section.section,
                     'dietary_restrictions': [
                         r.restriction.restriction 
-                        for r in item.menuitemdietaryrestriction_set.all()
+                        for r in MenuItemDietaryRestriction.objects.filter(item=item)
                     ]
                 })
         
         menu_data = {
-            'id': str(menu.id),
+            'id': str(menu.menu_id),
             'version': menu.version,
             'last_updated': menu.last_updated.isoformat(),
             'menu_items': menu_items

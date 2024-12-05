@@ -7,5 +7,5 @@ urlpatterns = [
     path('restaurants/', views.get_restaurants, name='get_restaurants'),
     path('restaurant/<int:restaurant_id>/', views.get_restaurant_detail, name='restaurant_detail'),
     path('restaurant/<int:restaurant_id>/menus/', views.get_restaurant_menus, name='restaurant_menus'),
-    path('restaurant/<int:restaurant_id>/menu/<int:version>/', views.get_menu_detail, name='menu_detail'),
+    path('restaurant/<str:restaurant_id>/menu/<int:version>/', views.get_menu_detail, name='get_menu_detail'),
 ]

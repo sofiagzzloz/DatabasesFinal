@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MapPin, Phone, Building2, Eye } from 'lucide-react';
-import type { Restaurant } from '@/types';
+import type { Restaurant, MenuData } from '@/types';
 import { Button } from './ui/Button';
 
 export function RestaurantDetail() {
@@ -10,20 +10,23 @@ export function RestaurantDetail() {
   const [restaurant, setRestaurant] = React.useState<Restaurant | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [menus, setMenus] = React.useState<MenuData[]>([]);
 
   React.useEffect(() => {
     const fetchData = async () => {
       try {
-        setIsLoading(true);
-        const response = await fetch(`http://127.0.0.1:8000/restaurant/${id}/`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch restaurant details');
-        }
-        const data = await response.json();
-        setRestaurant(data.restaurant);
-      } catch (err) {
-        console.error('Error:', err);
-        setError('Failed to load restaurant details');
+        const [restaurantRes, menusRes] = await Promise.all([
+          fetch(`http://127.0.0.1:8000/restaurant/${id}/`),
+          fetch(`http://127.0.0.1:8000/restaurant/${id}/menus/`)
+        ]);
+
+        const restaurantData = await restaurantRes.json();
+        const menusData = await menusRes.json();
+        
+        setRestaurant(restaurantData.restaurant);
+        setMenus(menusData.menus || []);
+      } catch (error) {
+        console.error('Error:', error);
       } finally {
         setIsLoading(false);
       }
@@ -43,7 +46,7 @@ export function RestaurantDetail() {
   }
 
   return (
-    <div>
+    <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">
           {restaurant.restaurant_name}
@@ -87,17 +90,28 @@ export function RestaurantDetail() {
         </div>
       </div>
 
-      {/* Menu Section */}
+      {/* Menu Versions Section */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Menu</h2>
-        <div className="flex justify-center">
-          <Button
-            onClick={() => navigate(`/restaurant/${id}/menu/1`)} // Assuming menu version 1
-            className="flex items-center gap-2"
-          >
-            <Eye className="h-4 w-4" />
-            View Menu
-          </Button>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Menu Versions</h2>
+        <div className="space-y-4">
+          {menus.map((menu) => (
+            <div key={menu.id} className="flex items-center justify-between border-b pb-4">
+              <div>
+                <h3 className="font-medium">Version {menu.version}</h3>
+                <p className="text-sm text-gray-500">
+                  Last Updated: {new Date(menu.last_updated).toLocaleDateString()}
+                </p>
+              </div>
+              <Button
+                onClick={() => navigate(`/restaurant/${id}/menu/${menu.version}`)}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Eye className="h-4 w-4" />
+                View Menu
+              </Button>
+            </div>
+          ))}
         </div>
       </div>
     </div>
