@@ -10,7 +10,7 @@ pip install python-decouple
 
 2. Create a .env File:
 
-```bash
+```py
 DB_ENGINE=django.db.backends.mysql
 DB_NAME=restaurant_menu_database
 DB_USER=your_mysql_user
@@ -21,12 +21,12 @@ DB_PORT=3306
 
 Make sure to include the .env file in your .gitignore file to keep it private:
 
-```bash
+```py
 .env
 ```
 3. Update settings.py:
 
-```bash
+```py
 from decouple import config
 
 DATABASES = {
@@ -44,13 +44,13 @@ DATABASES = {
 Steps to Connect Frontend and Backend:
 1. Run Both Servers:
 Start the Django server:
-```bash
+```py
 python manage.py runserver
 ```
 This should run your Django backend at http://127.0.0.1:8000/.
 
 Start the React frontend:
-```bash
+```py
 npm run dev
 ```
 This should run your frontend at http://localhost:5173/.
@@ -60,13 +60,13 @@ Note: For communication between these two, React will make API calls to Django (
 2. Ensure Cross-Origin Resource Sharing (CORS):
 Since your frontend (React) and backend (Django) are running on different ports, Django needs to allow requests from the React frontend.
 Install django-cors-headers:
-```bash
+```py
 pip install django-cors-headers
 ```
 
 
 Add it to INSTALLED_APPS in settings.py:
-```bash
+```py
 INSTALLED_APPS = [
     ...
     'corsheaders',
@@ -75,7 +75,7 @@ INSTALLED_APPS = [
 ```
 
 Add the middleware to MIDDLEWARE in settings.py:
-```bash
+```py
 MIDDLEWARE = [
     ...
     'corsheaders.middleware.CorsMiddleware',
@@ -84,14 +84,14 @@ MIDDLEWARE = [
 ```
 
 Allow your React frontend in settings.py:
-```bash
+```py
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # React frontend
 ]
 ```
 
 Install Django Rest Framework (if not installed): If you haven't already, install Django Rest Framework to handle API requests and responses:
-```bash
+```py
 pip install djangorestframework
 ```
 
