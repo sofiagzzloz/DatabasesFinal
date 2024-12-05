@@ -1,8 +1,8 @@
 import React from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { MapPin, Phone, Building2, PlusCircle, ChevronRight } from 'lucide-react';
+import { useParams, useNavigate} from 'react-router-dom';
+import { MapPin, Phone, Building2, ChevronRight } from 'lucide-react';
 import type { Restaurant, MenuData } from '@/types';
-import { Button } from '@/components/ui/button';
+
 
 export function RestaurantDetail() {
   const { id } = useParams();
@@ -100,12 +100,6 @@ export function RestaurantDetail() {
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Menu Versions</h2>
-          <Link to={`/restaurant/${id}/add-menu`}>
-            <Button variant="outline" className="flex items-center gap-2">
-              <PlusCircle className="h-4 w-4" />
-              Add Menu
-            </Button>
-          </Link>
         </div>
 
         {menuVersions.length === 0 ? (
