@@ -1,14 +1,13 @@
 import React from 'react';
-import { useParams, useNavigate} from 'react-router-dom';
-import { MapPin, Phone, Building2, ChevronRight } from 'lucide-react';
-import type { Restaurant, MenuData } from '@/types';
-
+import { useParams, useNavigate } from 'react-router-dom';
+import { MapPin, Phone, Building2, Eye } from 'lucide-react';
+import type { Restaurant } from '@/types';
+import { Button } from './ui/Button';
 
 export function RestaurantDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [restaurant, setRestaurant] = React.useState<Restaurant | null>(null);
-  const [menuVersions, setMenuVersions] = React.useState<MenuData[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -16,22 +15,14 @@ export function RestaurantDetail() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        // Fetch restaurant details
-        const restaurantResponse = await fetch(`http://127.0.0.1:8000/restaurant/${id}/`);
-        if (!restaurantResponse.ok) {
+        const response = await fetch(`http://127.0.0.1:8000/restaurant/${id}/`);
+        if (!response.ok) {
           throw new Error('Failed to fetch restaurant details');
         }
-        const restaurantData = await restaurantResponse.json();
-        setRestaurant(restaurantData.restaurant);
-
-        // Fetch menu versions
-        const menuResponse = await fetch(`http://127.0.0.1:8000/restaurant/${id}/menus/`);
-        if (menuResponse.ok) {
-          const menuData = await menuResponse.json();
-          setMenuVersions(menuData.menus);
-        }
-      } catch (error) {
-        console.error('Error:', error);
+        const data = await response.json();
+        setRestaurant(data.restaurant);
+      } catch (err) {
+        console.error('Error:', err);
         setError('Failed to load restaurant details');
       } finally {
         setIsLoading(false);
@@ -96,44 +87,18 @@ export function RestaurantDetail() {
         </div>
       </div>
 
-      {/* Menu Versions Section */}
+      {/* Menu Section */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Menu Versions</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Menu</h2>
+        <div className="flex justify-center">
+          <Button
+            onClick={() => navigate(`/restaurant/${id}/menu/1`)} // Assuming menu version 1
+            className="flex items-center gap-2"
+          >
+            <Eye className="h-4 w-4" />
+            View Menu
+          </Button>
         </div>
-
-        {menuVersions.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            No menus available. Add one to get started!
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {menuVersions.map((menu) => (
-              <div 
-                key={menu.version}
-                onClick={() => navigate(`/restaurant/${id}/menu/${menu.version}`)}
-                className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Menu Version {menu.version}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Last updated: {new Date(menu.last_updated).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">
-                      {menu.menu_items?.length || 0} items
-                    </span>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

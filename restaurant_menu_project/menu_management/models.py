@@ -28,7 +28,7 @@ class Menu(models.Model):
     version = models.IntegerField(default=1)
 
     class Meta:
-        db_table = 'menu'  # Explicitly map to the 'menu' table in the DB
+        db_table = 'menu'
 
     def __str__(self):
         return f"{self.restaurant.restaurant_name} - {self.title} (v{self.version})"

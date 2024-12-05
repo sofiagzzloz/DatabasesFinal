@@ -1,127 +1,118 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Tag } from 'lucide-react';
+import { ArrowLeft, Eye} from 'lucide-react';
 import { Button } from './ui/Button';
 import type { MenuData, Restaurant } from '@/types';
 
 export function MenuDetail() {
-  const { id, version } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
+  const [menuData, setMenuData] = React.useState<MenuData | null>(null);
+  const [restaurant, setRestaurant] = React.useState<Restaurant | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  // Mock data - replace with actual data fetching
-  const [menuData] = React.useState<MenuData>({
-    restaurantId: '1',
-    version: parseInt(version || '1'),
-    lastUpdated: new Date('2024-03-01'),
-    items: [
-      {
-        section: 'Appetizers',
-        name: 'Bruschetta',
-        price: 8.99,
-        description: 'Toasted bread with fresh tomatoes and basil',
-        dietaryNotes: ['Vegetarian'],
-      },
-      {
-        section: 'Main Course',
-        name: 'Grilled Salmon',
-        price: 24.99,
-        description: 'Fresh Atlantic salmon with seasonal vegetables',
-        dietaryNotes: ['Gluten-Free'],
-      },
-    ],
-  });
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // First get restaurant details
+        const restaurantRes = await fetch(`http://127.0.0.1:8000/restaurant/${id}/`);
+        if (!restaurantRes.ok) {
+          throw new Error('Failed to fetch restaurant data');
+        }
+        const restaurantData = await restaurantRes.json();
+        setRestaurant(restaurantData.restaurant);
 
-  const [restaurant] = React.useState<Restaurant>({
-    id: '1',
-    name: 'The Italian Place',
-    address: '123 Main St',
-    city: 'New York',
-    phone: '(555) 123-4567',
-    email: 'info@italianplace.com',
-  });
+        // Then get the menu data - using the menus endpoint instead
+        const menuRes = await fetch(`http://127.0.0.1:8000/restaurant/${id}/menus/`);
+        if (!menuRes.ok) {
+          throw new Error('Failed to fetch menu data');
+        }
 
-  // Group items by section
-  const itemsBySection = React.useMemo(() => {
-    const sections: { [key: string]: typeof menuData.items } = {};
-    menuData.items.forEach((item) => {
-      if (!sections[item.section]) {
-        sections[item.section] = [];
+        const menuData = await menuRes.json();
+        console.log('Menu Data:', menuData); // Debug log
+        
+        if (menuData.menus && menuData.menus.length > 0) {
+          setMenuData(menuData.menus[0]); // Get the first menu
+        } else {
+          throw new Error('No menu found');
+        }
+
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setIsLoading(false);
       }
-      sections[item.section].push(item);
-    });
-    return sections;
-  }, [menuData.items]);
+    };
+
+    if (id) {
+      fetchData();
+    }
+  }, [id]);
+
+  if (isLoading) {
+    return <div className="text-center py-8">Loading menu...</div>;
+  }
+
+  if (!menuData || !restaurant) {
+    return <div className="text-center py-8">No menu data available</div>;
+  }
 
   return (
-    <div>
-      <div className="mb-8">
+    <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="mb-6 flex items-center justify-between">
         <Button
           variant="outline"
           onClick={() => navigate(`/restaurant/${id}`)}
-          className="mb-4"
+          className="flex items-center gap-2"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ArrowLeft className="h-4 w-4" />
           Back to Restaurant
         </Button>
-
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{restaurant.name}</h1>
-            <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500">
-              <div className="flex items-center">
-                <Calendar className="w-4 h-4 mr-1" />
-                Version {version}
-              </div>
-              <div className="flex items-center">
-                <Tag className="w-4 h-4 mr-1" />
-                Last Updated: {menuData.lastUpdated.toLocaleDateString()}
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
-      <div className="bg-white shadow rounded-lg">
-        {Object.entries(itemsBySection).map(([section, items]) => (
-          <div key={section} className="border-b last:border-b-0">
-            <div className="px-6 py-4 bg-gray-50">
-              <h2 className="text-xl font-semibold text-gray-900">{section}</h2>
-            </div>
-            <div className="divide-y">
-              {items.map((item, index) => (
-                <div key={index} className="px-6 py-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900">
-                        {item.name}
-                      </h3>
-                      {item.description && (
-                        <p className="mt-1 text-sm text-gray-600">
-                          {item.description}
-                        </p>
-                      )}
-                      {item.dietaryNotes && item.dietaryNotes.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {item.dietaryNotes.map((note, i) => (
-                            <span
-                              key={i}
-                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
-                            >
-                              {note}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-lg font-medium text-gray-900">
-                      ${item.price.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
+      <div className="bg-white shadow-sm rounded-lg overflow-hidden mb-6">
+        <div className="px-6 py-4 bg-gray-50 border-b">
+          <h1 className="text-2xl font-bold text-gray-900">
+            {restaurant.restaurant_name} - Menu
+          </h1>
+        </div>
+
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Section
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Item Name
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Price
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Description
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Dietary Notes
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {menuData.menu_items.map((item, index) => (
+              <tr key={index} className="hover:bg-gray-50">
+                <td className="px-6 py-4 text-sm text-gray-900">{item.section}</td>
+                <td className="px-6 py-4 text-sm text-gray-900">{item.name}</td>
+                <td className="px-6 py-4 text-sm text-gray-900">
+                  {item.price ? `$${item.price.toFixed(2)}` : '-'}
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-900">{item.description || '-'}</td>
+                <td className="px-6 py-4 text-sm text-gray-900">
+                  {item.dietary_restrictions?.join(', ') || '-'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

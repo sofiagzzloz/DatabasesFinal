@@ -283,15 +283,63 @@ def get_restaurants(request):
 def get_restaurant_detail(request, restaurant_id):
     try:
         restaurant = get_object_or_404(Restaurant, id=restaurant_id)
-        serializer = RestaurantSerializer(restaurant)
-        return JsonResponse({'restaurant': serializer.data})
+        data = {
+            'restaurant': {
+                'id': restaurant.id,
+                'restaurant_name': restaurant.restaurant_name,
+                'address': restaurant.address,
+                'city': restaurant.city,
+                'country': restaurant.country,
+                'website_link': restaurant.website_link,
+                'contact_number': restaurant.contact_number,
+            }
+        }
+        return JsonResponse(data)
     except Exception as e:
         logger.error(f"Error fetching restaurant details: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
 @api_view(['GET'])
+def get_menu_detail(request, restaurant_id, version):
+    try:
+        # Make sure we're using restaurant_id
+        menu = Menu.objects.get(restaurant_id=restaurant_id, version=version)
+        sections = MenuSection.objects.filter(menu=menu)
+        menu_items = []
+        
+        for section in sections:
+            items = MenuItem.objects.filter(section=section)
+            for item in items:
+                menu_items.append({
+                    'name': item.item,
+                    'price': float(item.price) if item.price else None,
+                    'description': item.item_description,
+                    'section': section.section,
+                    'dietary_restrictions': [
+                        r.restriction.restriction 
+                        for r in item.menuitemdietaryrestriction_set.all()
+                    ]
+                })
+        
+        menu_data = {
+            'id': str(menu.id),
+            'version': menu.version,
+            'last_updated': menu.last_updated.isoformat(),
+            'menu_items': menu_items
+        }
+        
+        return JsonResponse({'menu': menu_data})
+    except Menu.DoesNotExist:
+        return JsonResponse({'error': 'Menu not found'}, status=404)
+    except Exception as e:
+        logger.error(f"Error fetching menu detail: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+@api_view(['GET'])
 def get_restaurant_menus(request, restaurant_id):
     try:
+        logger.info(f"Fetching menus for restaurant {restaurant_id}")
+        
         menus = Menu.objects.filter(restaurant_id=restaurant_id).order_by('-version')
         menu_data = []
         
@@ -302,24 +350,28 @@ def get_restaurant_menus(request, restaurant_id):
             for section in sections:
                 items = MenuItem.objects.filter(section=section)
                 for item in items:
+                    price = None
+                    if item.price is not None:
+                        try:
+                            price = float(item.price)
+                        except (ValueError, TypeError):
+                            price = None
+                            
                     menu_items.append({
                         'name': item.item,
-                        'price': float(item.price),
+                        'price': price,
                         'description': item.item_description,
                         'section': section.section,
-                        'dietary_restrictions': [
-                            r.restriction.restriction 
-                            for r in item.menuitemdietaryrestriction_set.all()
-                        ]
+                        'dietary_restrictions': []
                     })
             
             menu_data.append({
-                'id': str(menu.id),
+                'id': str(menu.menu_id),
                 'version': menu.version,
-                'last_updated': menu.last_updated.isoformat(),
+                'last_updated': menu.last_updated.isoformat() if menu.last_updated else None,
                 'menu_items': menu_items
             })
-        
+            
         return JsonResponse({'menus': menu_data})
     except Exception as e:
         logger.error(f"Error fetching restaurant menus: {str(e)}")
