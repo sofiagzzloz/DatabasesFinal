@@ -96,6 +96,14 @@ pip install djangorestframework
 ```
 
 Create a Serializer: In your Django project, you’ll need to create a serializer to match the data you're sending from the frontend. Create a new file serializers.py inside your app (for example, in menu_management/ if that's your app):
+```py
+from rest_framework import serializers
+from .models import Restaurant
 
-
+class RestaurantSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Restaurant
+        fields = ['id', 'restaurant_name', 'address', 'city', 'country', 'website_link', 'contact_number']
+        read_only_fields = ['id']
+```
 
